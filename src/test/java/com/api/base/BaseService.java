@@ -7,26 +7,24 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 
 public class BaseService {
+    private static final String BASE_URL = ConfigReader.get("base_url");
 
-    private static final String  BASE_URL = ConfigReader.get("base_url");
-    private final RequestSpecification requestSpecification;
-
-    public BaseService(){
-        requestSpecification = RestAssured.given().baseUri(BASE_URL);
+    private RequestSpecification getRequestSpec(String token) {
+        RequestSpecification spec = RestAssured
+                .given()
+                .baseUri(BASE_URL)
+                .contentType(ContentType.JSON);
+        if (token != null && !token.isEmpty()) {
+            spec.header("Authorization", "Bearer " + token);
+        }
+        return spec;
     }
 
-    protected void setAuthToken(String token){
-        requestSpecification.header("Authorization", "Bearer " + token);
+    protected Response postRequest(Object payload, String endpoint, String token) {
+        return getRequestSpec(token).body(payload).post(endpoint);
     }
 
-    protected Response postRequest(Object payload, String endpoint){
-        return requestSpecification.contentType(ContentType.JSON).body(payload).post(endpoint);
+    protected Response getRequest(String endpoint, String token) {
+        return getRequestSpec(token).get(endpoint);
     }
-
-    protected Response getRequest(String endpoint){
-        return requestSpecification.contentType(ContentType.JSON).get(endpoint);
-    }
-
-
-
 }

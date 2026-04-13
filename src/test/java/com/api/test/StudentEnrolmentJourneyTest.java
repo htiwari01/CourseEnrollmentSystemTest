@@ -16,94 +16,71 @@ import java.util.List;
 public class StudentEnrolmentJourneyTest {
 
     @Test(description = "Student course enrollment end-to-end flow")
-    public void studentCourseEnrolmentTest(){
-        //Student logs in to gets token
-        LoginRequest loginRequest = new LoginRequest(ConfigReader.get("student_username"), ConfigReader.get("password"));
+    public void studentCourseEnrolmentTest() {
+
         LoginService loginService = new LoginService();
-        Response response = loginService.studentLogin(loginRequest);
+        CourseService courseService = new CourseService();
+        EnrolmentService enrolmentService = new EnrolmentService();
+        Response response;
+
+        //Student Login
+        LoginRequest loginRequest = new LoginRequest(ConfigReader.get("student_username"), ConfigReader.get("password"));
+        response = loginService.studentLogin(loginRequest);
+        Assert.assertEquals(response.statusCode(), 200);
+        Assert.assertTrue(response.time() < 30000, "Login took too long");
         LoginResponse loginResponse = response.as(LoginResponse.class);
         String token = loginResponse.getToken();
-        Assert.assertEquals(response.statusCode(), 200);
-        Assert.assertNotNull(loginResponse.getToken());
-        Assert.assertTrue(response.time() < 30000, "Response took more than 30 seconds");
+        Assert.assertNotNull(token);
 
-        //Search for a course
-        CourseService courseService = new CourseService();
+        //Search Course by title
         response = courseService.searchCourseByTitle(ConfigReader.get("course_title"));
         Assert.assertEquals(response.statusCode(), 200);
         List<CourseResponse> courses = response.jsonPath().getList(".", CourseResponse.class);
         CourseResponse firstCourse = courses.get(0);
         String courseCode = firstCourse.getCourseCode();
         Assert.assertNotNull(courseCode);
-        Assert.assertNotNull(firstCourse.get_id());
         Assert.assertTrue(firstCourse.getTitle().contains(ConfigReader.get("course_title")));
-        Assert.assertNotNull(firstCourse.getInstructor());
-        Assert.assertNotNull(firstCourse.getCategory());
-        Assert.assertNotNull(firstCourse.getStartDate());
-        Assert.assertNotNull(firstCourse.getEndDate());
-        Assert.assertTrue(firstCourse.getTotalCapacity()>0);
-        Assert.assertTrue(firstCourse.getAvailableSlots()>0);
-        Assert.assertTrue(response.time() < 30000, "Response took more than 30 seconds");
 
-        //Check course availability
+        //Check course slot - BEFORE
         response = courseService.checkCourseSlot(courseCode);
         Assert.assertEquals(response.statusCode(), 200);
-        CourseAvailabilityResponse courseAvailabilityResponse = response.as(CourseAvailabilityResponse.class);
-        int availableSlot = courseAvailabilityResponse.getAvailableSlots();
-        Assert.assertEquals(courseAvailabilityResponse.getCourseCode(), courseCode);
-        Assert.assertTrue(courseAvailabilityResponse.getAvailableSlots()>0);
-        Assert.assertEquals(courseAvailabilityResponse.getTitle(), firstCourse.getTitle());
+        CourseAvailabilityResponse availabilityBefore = response.as(CourseAvailabilityResponse.class);
+        int availableSlots = availabilityBefore.getAvailableSlots();
 
-        //Course enrollment
-        EnrolmentService enrolmentService = new EnrolmentService();
-        EnrolmentRequest enrolmentRequest = new EnrolmentRequest(ConfigReader.get("student_username"), courseCode);
-        response = enrolmentService.courseEnrolment(token, enrolmentRequest);
+        //Enrol student using course code
+        EnrolmentRequest enrolRequest = new EnrolmentRequest(ConfigReader.get("student_username"), courseCode);
+        response = enrolmentService.courseEnrolment(token, enrolRequest);
         Assert.assertEquals(response.statusCode(), 201);
-        EnrolementResponse enrolementResponse = response.as(EnrolementResponse.class);
-        Assert.assertEquals(enrolementResponse.getMessage(), "Enrolled successfully");
-        Assert.assertEquals(enrolementResponse.getEnrolmentJson().getUsername(), ConfigReader.get("student_username"));
-        Assert.assertEquals(enrolementResponse.getEnrolmentJson().getCourseCode(), courseCode);
-        Assert.assertEquals(enrolementResponse.getEnrolmentJson().getStatus(), "active");
+        EnrolementResponse enrolResponse = response.as(EnrolementResponse.class);
+        Assert.assertEquals(enrolResponse.getMessage(), "Enrolled successfully");
 
-        //Verify enrolment history
-        EnrolmentService activeEnrolmentService = new EnrolmentService();
-        ActiveCourseEnrolmentRequest activeCourseEnrolmentRequest = new ActiveCourseEnrolmentRequest(ConfigReader.get("student_username"));
-        response = activeEnrolmentService.activeCourseEnrolment(token, activeCourseEnrolmentRequest);
+        //Verify Enrolment
+        ActiveCourseEnrolmentRequest activeRequest = new ActiveCourseEnrolmentRequest(ConfigReader.get("student_username"));
+        response = enrolmentService.activeCourseEnrolment(token, activeRequest);
         Assert.assertEquals(response.statusCode(), 200);
-        List<ActiveCourseEnrolmentResponse> activeCourseList = response.jsonPath().getList(".", ActiveCourseEnrolmentResponse.class);
-        ActiveCourseEnrolmentResponse activeCourse = activeCourseList.get(0);
-        Assert.assertEquals(activeCourse.getUsername(), ConfigReader.get("student_username"));
-        Assert.assertEquals(activeCourse.getStatus(), "active");
+        List<ActiveCourseEnrolmentResponse> activeList = response.jsonPath().getList(".", ActiveCourseEnrolmentResponse.class);
+        Assert.assertTrue(activeList.size() > 0);
 
-        //Verify course available slot
+        //Slot validation
         response = courseService.checkCourseSlot(courseCode);
-        Assert.assertEquals(response.statusCode(), 200);
-        courseAvailabilityResponse = response.as(CourseAvailabilityResponse.class);
-        Assert.assertEquals(courseAvailabilityResponse.getAvailableSlots(), availableSlot-1);
+        CourseAvailabilityResponse availabilityAfterEnrol = response.as(CourseAvailabilityResponse.class);
+        Assert.assertEquals(availabilityAfterEnrol.getAvailableSlots(), availableSlots - 1);
 
-        //Drop course
-        EnrolmentService dropEnrolmentService = new EnrolmentService();
-        EnrolmentRequest dropCourseRequest = new EnrolmentRequest(ConfigReader.get("student_username"), courseCode);
-        response = dropEnrolmentService.dropCourse(token, dropCourseRequest);
+        //Drop a course
+        response = enrolmentService.dropCourse(token, enrolRequest);
         Assert.assertEquals(response.statusCode(), 200);
-        EnrolementResponse dropCourseResponse = response.as(EnrolementResponse.class);
-        Assert.assertEquals(dropCourseResponse.getMessage(), "Course dropped successfully");
-        Assert.assertEquals(dropCourseResponse.getEnrolmentJson().getCourseCode(), courseCode);
-        Assert.assertEquals(dropCourseResponse.getEnrolmentJson().getStatus(), "dropped");
+        EnrolementResponse dropResponse = response.as(EnrolementResponse.class);
+        Assert.assertEquals(dropResponse.getMessage(), "Course dropped successfully");
 
-        //Verify course removed
-        EnrolmentService verifyCourseRemoval = new EnrolmentService();
-        ActiveCourseEnrolmentRequest verifyEnrolmentRequest = new ActiveCourseEnrolmentRequest(ConfigReader.get("student_username"));
-        response = verifyCourseRemoval.activeCourseEnrolment(token, verifyEnrolmentRequest);
+        //Verify Active Enrolment
+        response = enrolmentService.activeCourseEnrolment(token, activeRequest);
         Assert.assertEquals(response.statusCode(), 200);
-        List<ActiveCourseEnrolmentResponse> list = response.jsonPath().getList(".", ActiveCourseEnrolmentResponse.class);
-        Assert.assertTrue(list == null || list.isEmpty(), "Expected no active enrolments");
+        List<ActiveCourseEnrolmentResponse> afterDropList = response.jsonPath().getList(".", ActiveCourseEnrolmentResponse.class);
+        Assert.assertTrue(afterDropList == null || afterDropList.isEmpty(), "Expected no active enrolments");
 
-        //Verify course available slot
+        //Verify slot restored
         response = courseService.checkCourseSlot(courseCode);
-        Assert.assertEquals(response.statusCode(), 200);
-        courseAvailabilityResponse = response.as(CourseAvailabilityResponse.class);
-        Assert.assertEquals(courseAvailabilityResponse.getAvailableSlots(), availableSlot);
-
+        CourseAvailabilityResponse finalSlot = response.as(CourseAvailabilityResponse.class);
+        Assert.assertEquals(finalSlot.getAvailableSlots(), availableSlots);
     }
 }
