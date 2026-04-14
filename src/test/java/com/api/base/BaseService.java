@@ -7,7 +7,7 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 
 public class BaseService {
-    private static final String BASE_URL = ConfigReader.get("base_url");
+    private static final String BASE_URL = ConfigReader.get("BASE_URL");
 
     private RequestSpecification getRequestSpec(String token) {
         RequestSpecification spec = RestAssured

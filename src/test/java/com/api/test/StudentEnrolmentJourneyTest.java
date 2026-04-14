@@ -24,7 +24,7 @@ public class StudentEnrolmentJourneyTest {
         Response response;
 
         //Student Login
-        LoginRequest loginRequest = new LoginRequest(ConfigReader.get("student_username"), ConfigReader.get("password"));
+        LoginRequest loginRequest = new LoginRequest(ConfigReader.get("STUDENT_USERNAME"), ConfigReader.get("PASSWORD"));
         response = loginService.studentLogin(loginRequest);
         Assert.assertEquals(response.statusCode(), 200);
         Assert.assertTrue(response.time() < 30000, "Login took too long");
@@ -33,13 +33,13 @@ public class StudentEnrolmentJourneyTest {
         Assert.assertNotNull(token);
 
         //Search Course by title
-        response = courseService.searchCourseByTitle(ConfigReader.get("course_title"));
+        response = courseService.searchCourseByTitle(ConfigReader.get("COURSE_TITLE"));
         Assert.assertEquals(response.statusCode(), 200);
         List<CourseResponse> courses = response.jsonPath().getList(".", CourseResponse.class);
         CourseResponse firstCourse = courses.get(0);
         String courseCode = firstCourse.getCourseCode();
         Assert.assertNotNull(courseCode);
-        Assert.assertTrue(firstCourse.getTitle().contains(ConfigReader.get("course_title")));
+        Assert.assertTrue(firstCourse.getTitle().contains(ConfigReader.get("COURSE_TITLE")));
 
         //Check course slot - BEFORE
         response = courseService.checkCourseSlot(courseCode);
@@ -48,14 +48,14 @@ public class StudentEnrolmentJourneyTest {
         int availableSlots = availabilityBefore.getAvailableSlots();
 
         //Enrol student using course code
-        EnrolmentRequest enrolRequest = new EnrolmentRequest(ConfigReader.get("student_username"), courseCode);
+        EnrolmentRequest enrolRequest = new EnrolmentRequest(ConfigReader.get("STUDENT_USERNAME"), courseCode);
         response = enrolmentService.courseEnrolment(token, enrolRequest);
         Assert.assertEquals(response.statusCode(), 201);
         EnrolementResponse enrolResponse = response.as(EnrolementResponse.class);
         Assert.assertEquals(enrolResponse.getMessage(), "Enrolled successfully");
 
         //Verify Enrolment
-        ActiveCourseEnrolmentRequest activeRequest = new ActiveCourseEnrolmentRequest(ConfigReader.get("student_username"));
+        ActiveCourseEnrolmentRequest activeRequest = new ActiveCourseEnrolmentRequest(ConfigReader.get("STUDENT_USERNAME"));
         response = enrolmentService.activeCourseEnrolment(token, activeRequest);
         Assert.assertEquals(response.statusCode(), 200);
         List<ActiveCourseEnrolmentResponse> activeList = response.jsonPath().getList(".", ActiveCourseEnrolmentResponse.class);

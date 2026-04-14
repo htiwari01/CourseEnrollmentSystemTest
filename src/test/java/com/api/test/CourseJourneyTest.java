@@ -26,7 +26,7 @@ public class CourseJourneyTest {
         Response response;
 
         //Instructor Login
-        LoginRequest loginRequest = new LoginRequest(ConfigReader.get("instructor_username"), ConfigReader.get("password"));
+        LoginRequest loginRequest = new LoginRequest(ConfigReader.get("INSTRUCTOR_USERNAME"), ConfigReader.get("PASSWORD"));
         response = loginService.instructorLogin(loginRequest);
         Assert.assertEquals(response.statusCode(), 200);
         Assert.assertTrue(response.time() < 30000);
