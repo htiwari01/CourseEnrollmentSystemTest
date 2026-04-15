@@ -13,7 +13,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.util.List;
 
-public class StudentEnrolmentJourneyTest {
+public class StudentEnrolmentJourneyTest extends BaseTest {
 
     @Test(description = "Student course enrollment end-to-end flow")
     public void studentCourseEnrolmentTest() {

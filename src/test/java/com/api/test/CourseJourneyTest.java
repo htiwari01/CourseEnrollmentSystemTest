@@ -17,7 +17,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-public class CourseJourneyTest {
+public class CourseJourneyTest extends BaseTest {
 
     @Test(description = "Create, search and validate course journey")
     public void courseJourneyTest() {
