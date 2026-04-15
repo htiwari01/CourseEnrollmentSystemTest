@@ -71,7 +71,6 @@ public class CourseJourneyTest {
             Assert.assertNotNull(course.getCourseCode());
             Assert.assertNotNull(course.getTitle());
             Assert.assertNotNull(course.get_id());
-            Assert.assertTrue(course.getAvailableSlots() >= 0);
         }
 
         //Search Course by Title

@@ -1,0 +1,9 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="API Test Suite">
+    <test name="E2E Tests">
+        <classes>
+            <class name="com.api.test.StudentEnrolmentJourneyTest"/>
+            <class name="com.api.test.CourseJourneyTest"/>
+        </classes>
+    </test>
+</suite>
